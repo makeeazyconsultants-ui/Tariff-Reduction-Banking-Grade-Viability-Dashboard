@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2 MW Solar Tariff Impact Dashboard</title>
+  <style>
+    :root {
+      --bg: #f4f7f6;
+      --card: #ffffff;
+      --text: #243447;
+      --muted: #667085;
+      --border: #e4e7ec;
+      --good: #1f7a4d;
+      --watch: #b7791f;
+      --risk: #b42318;
+      --accent: #1f4e79;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); padding: 32px; }
+    .container { max-width: 1120px; margin: 0 auto; }
+    .header { background: linear-gradient(135deg, #12395f, #1f4e79); color: #fff; padding: 28px; border-radius: 14px; margin-bottom: 24px; box-shadow: 0 8px 24px rgba(16, 24, 40, 0.14); }
+    .header h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: -0.02em; }
+    .header p { margin: 0; opacity: 0.92; line-height: 1.5; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 22px; box-shadow: 0 4px 14px rgba(16, 24, 40, 0.06); }
+    .card h2 { margin: 0 0 16px; font-size: 20px; color: var(--accent); }
+    label { display: block; font-weight: 700; margin-bottom: 8px; }
+    input[type="number"], input[type="range"] { width: 100%; }
+    input[type="number"] { padding: 12px; border: 1px solid #d0d5dd; border-radius: 10px; font-size: 18px; margin-bottom: 12px; }
+    input[type="range"] { margin: 8px 0 18px; }
+    .assumptions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+    .assumption { background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
+    .assumption .small { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+    .assumption .big { font-weight: 800; font-size: 16px; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 14px; }
+    .metric { padding: 16px; border-radius: 12px; background: #f8fafc; border: 1px solid var(--border); }
+    .metric .label { font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+    .metric .value { font-size: 24px; font-weight: 800; color: var(--text); }
+    .metric .sub { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.35; }
+    .status { border-radius: 12px; padding: 16px; margin-top: 18px; font-weight: 700; line-height: 1.45; }
+    .status.good { background: #ecfdf3; color: var(--good); border: 1px solid #abefc6; }
+    .status.watch { background: #fffaeb; color: var(--watch); border: 1px solid #fedf89; }
+    .status.risk { background: #fef3f2; color: var(--risk); border: 1px solid #fecdca; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; overflow: hidden; border-radius: 10px; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid var(--border); text-align: right; font-size: 14px; }
+    th:first-child, td:first-child { text-align: left; }
+    th { background: #f8fafc; color: #475467; font-weight: 700; }
+    .pill { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .pill.good { background: #dcfae6; color: var(--good); }
+    .pill.watch { background: #fef0c7; color: var(--watch); }
+    .pill.risk { background: #fee4e2; color: var(--risk); }
+    .note { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 14px; }
+    .full { grid-column: 1 / -1; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    button { border: 0; background: var(--accent); color: #fff; padding: 11px 14px; border-radius: 10px; cursor: pointer; font-weight: 700; }
+    button.secondary { background: #475467; }
+    button:hover { filter: brightness(0.95); }
+    @media print { body { background: #fff; padding: 0; } .actions, input[type="range"] { display: none; } .card, .header { box-shadow: none; } }
+    @media (max-width: 900px) { body { padding: 18px; } .grid, .metrics, .assumptions { grid-template-columns: 1fr; } .header h1 { font-size: 24px; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Tariff Reduction: 2 MW Solar Project Banking Dashboard</h1>
+      <p>This dashboard uses a 2 MW project at 19% CUF. It converts tariff movement into revenue impact, DSCR compression, residual cash after debt service, and lender-facing risk flags.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Tariff Input</h2>
+        <label for="tariff">Revised Tariff (₹/kWh)</label>
+        <input type="number" id="tariff" value="2.98" min="1.50" max="3.50" step="0.01" oninput="syncFromNumber()" />
+        <input type="range" id="tariffSlider" value="2.98" min="1.50" max="3.50" step="0.01" oninput="syncFromSlider()" />
+        <div class="assumptions">
+          <div class="assumption"><div class="small">Project Size</div><div class="big">2 MW</div></div>
+          <div class="assumption"><div class="small">CUF</div><div class="big">19%</div></div>
+          <div class="assumption"><div class="small">Annual Units</div><div class="big">33.29 lakh</div></div>
+          <div class="assumption"><div class="small">Base Tariff</div><div class="big">₹3.13/kWh</div></div>
+        </div>
+        <div class="note">
+          Annual units calculation: 2,000 kW × 8,760 hours × 19% = 33,28,800 kWh, rounded to 33.29 lakh units. Base annual revenue at ₹3.13/kWh is approximately ₹104.19 lakh.
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Banking Interpretation</h2>
+        <div id="status" class="status"></div>
+        <div class="note">
+          Practical lender thresholds used here: average DSCR ≥1.30x is acceptable, 1.20x–1.30x is a watch zone, and &lt;1.20x is a restructuring zone.
+        </div>
+        <div class="actions">
+          <button onclick="exportCSV()">Export CSV</button>
+          <button onclick="exportHTMLReport()">Export HTML Report</button>
+          <button class="secondary" onclick="window.print()">Print / Save as PDF</button>
+        </div>
+      </div>
+
+      <div class="card full">
+        <h2>Immediate Impact Summary</h2>
+        <div class="metrics">
+          <div class="metric"><div class="label">Annual Revenue</div><div class="value">₹<span id="revenue">0.00</span> L</div><div class="sub">Revenue at revised tariff</div></div>
+          <div class="metric"><div class="label">Revenue Loss vs Base</div><div class="value">₹<span id="impact">0.00</span> L</div><div class="sub">Reduction from ₹3.13/kWh</div></div>
+          <div class="metric"><div class="label">Revenue Drop</div><div class="value"><span id="dropPct">0.00</span>%</div><div class="sub">Top-line compression</div></div>
+          <div class="metric"><div class="label">Average DSCR</div><div class="value"><span id="avgDscr">0.00</span>x</div><div class="sub">Estimated from debt-service schedule below</div></div>
+          <div class="metric"><div class="label">Minimum DSCR</div><div class="value"><span id="minDscr">0.00</span>x</div><div class="sub">Lowest projected year</div></div>
+          <div class="metric"><div class="label">Cash After Debt Service</div><div class="value">₹<span id="cashAfterDebt">0.00</span> L</div><div class="sub">Estimated steady annual residual cash</div></div>
+        </div>
+      </div>
+
+      <div class="card full">
+        <h2>Year-wise Debt Service Stress View</h2>
+        <table>
+          <thead><tr><th>Year</th><th>Revenue ₹ L</th><th>Debt Service ₹ L</th><th>DSCR</th><th>Credit Flag</th></tr></thead>
+          <tbody id="yearRows"></tbody>
+        </table>
+        <div class="note">
+          Debt-service figures are sensitivity assumptions. For bank submission, replace them with the exact term-loan repayment and interest schedule from the CMA model.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const projectSizeMW = 2;
+    const cuf = 0.19;
+    const hoursPerYear = 8760;
+    const unitsKwh = projectSizeMW * 1000 * hoursPerYear * cuf;
+    const unitsLakh = unitsKwh / 100000;
+    const baseTariff = 3.13;
+    const baseRevenue = unitsLakh * baseTariff;
+    let latestRows = [];
+    let latestSummary = {};
+
+    // Sensitivity debt-service schedule in ₹ lakh. Replace with exact CMA schedule for final submission.
+    const years = [
+      { year: 'FY1', debtService: 78.00 },
+      { year: 'FY2', debtService: 81.00 },
+      { year: 'FY3', debtService: 83.50 },
+      { year: 'FY4', debtService: 84.00 },
+      { year: 'FY5', debtService: 82.50 },
+      { year: 'FY6', debtService: 80.50 },
+      { year: 'FY7', debtService: 78.00 }
+    ];
+
+    function format(n) { return Number(n).toFixed(2); }
+    function classifyDscr(dscr) {
+      if (dscr >= 1.30) return { cls: 'good', text: 'Bankable' };
+      if (dscr >= 1.20) return { cls: 'watch', text: 'Watch' };
+      return { cls: 'risk', text: 'Restructure' };
+    }
+    function syncFromNumber() { document.getElementById('tariffSlider').value = document.getElementById('tariff').value; calculate(); }
+    function syncFromSlider() { document.getElementById('tariff').value = document.getElementById('tariffSlider').value; calculate(); }
+
+    function calculate() {
+      const tariffInput = document.getElementById('tariff');
+      let tariff = parseFloat(tariffInput.value);
+      if (Number.isNaN(tariff)) tariff = baseTariff;
+      if (tariff < 1.50) tariff = 1.50;
+      if (tariff > 3.50) tariff = 3.50;
+      tariffInput.value = tariff.toFixed(2);
+      document.getElementById('tariffSlider').value = tariff.toFixed(2);
+
+      const revenue = unitsLakh * tariff;
+      const impact = baseRevenue - revenue;
+      const dropPct = (impact / baseRevenue) * 100;
+      const dscrValues = years.map(row => revenue / row.debtService);
+      const avgDscr = dscrValues.reduce((a, b) => a + b, 0) / dscrValues.length;
+      const minDscr = Math.min(...dscrValues);
+      const avgDebtService = years.reduce((sum, row) => sum + row.debtService, 0) / years.length;
+      const cashAfterDebt = revenue - avgDebtService;
+
+      latestSummary = { projectSizeMW, cufPct: cuf * 100, annualUnitsLakh: unitsLakh, baseTariff, tariff, baseRevenue, revenue, impact, dropPct, avgDscr, minDscr, cashAfterDebt };
+
+      document.getElementById('revenue').innerText = format(revenue);
+      document.getElementById('impact').innerText = format(impact);
+      document.getElementById('dropPct').innerText = format(dropPct);
+      document.getElementById('avgDscr').innerText = format(avgDscr);
+      document.getElementById('minDscr').innerText = format(minDscr);
+      document.getElementById('cashAfterDebt').innerText = format(cashAfterDebt);
+
+      const status = document.getElementById('status');
+      const risk = classifyDscr(avgDscr);
+      status.className = 'status ' + risk.cls;
+      if (risk.cls === 'good') {
+        status.innerHTML = 'ACCEPTABLE: Average DSCR remains above 1.30x. The case is bankable, subject to generation, receivable-delay, and interest-rate stress testing.';
+      } else if (risk.cls === 'watch') {
+        status.innerHTML = 'WATCH ZONE: Average DSCR is below normal lender comfort. Submit only with mitigants such as higher equity, lower debt, longer tenor, DSRA, or additional collateral support.';
+      } else {
+        status.innerHTML = 'CRITICAL: Average DSCR is below 1.20x. This is a debt-service capacity issue, not merely a tariff concession. Restructuring is required before bank submission.';
+      }
+
+      const tbody = document.getElementById('yearRows');
+      tbody.innerHTML = '';
+      latestRows = [];
+      years.forEach(row => {
+        const dscr = revenue / row.debtService;
+        const flag = classifyDscr(dscr);
+        latestRows.push({ year: row.year, revenue, debtService: row.debtService, dscr, flag: flag.text });
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.year}</td><td>${format(revenue)}</td><td>${format(row.debtService)}</td><td>${format(dscr)}x</td><td><span class="pill ${flag.cls}">${flag.text}</span></td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function downloadFile(filename, content, mimeType) {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function exportCSV() {
+      calculate();
+      const s = latestSummary;
+      const lines = [
+        ['Tariff Impact Dashboard - 2 MW at 19% CUF'],
+        ['Project Size MW', format(s.projectSizeMW)],
+        ['CUF %', format(s.cufPct)],
+        ['Annual Units Lakh', format(s.annualUnitsLakh)],
+        ['Base Tariff Rs/kWh', format(s.baseTariff)],
+        ['Revised Tariff Rs/kWh', format(s.tariff)],
+        ['Base Revenue Rs Lakh', format(s.baseRevenue)],
+        ['Revised Revenue Rs Lakh', format(s.revenue)],
+        ['Revenue Loss Rs Lakh', format(s.impact)],
+        ['Revenue Drop %', format(s.dropPct)],
+        ['Average DSCR x', format(s.avgDscr)],
+        ['Minimum DSCR x', format(s.minDscr)],
+        ['Cash After Debt Service Rs Lakh', format(s.cashAfterDebt)],
+        [],
+        ['Year', 'Revenue Rs Lakh', 'Debt Service Rs Lakh', 'DSCR x', 'Credit Flag'],
+        ...latestRows.map(r => [r.year, format(r.revenue), format(r.debtService), format(r.dscr), r.flag])
+      ];
+      const csv = lines.map(row => row.map(cell => '"' + String(cell ?? '').replace(/"/g, '""') + '"').join(',')).join('\n');
+      downloadFile('2mw_tariff_impact_dashboard.csv', csv, 'text/csv;charset=utf-8;');
+    }
+
+    function exportHTMLReport() {
+      calculate();
+      const s = latestSummary;
+      const rows = latestRows.map(r => `<tr><td>${r.year}</td><td>${format(r.revenue)}</td><td>${format(r.debtService)}</td><td>${format(r.dscr)}x</td><td>${r.flag}</td></tr>`).join('');
+      const report = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>2 MW Tariff Impact Report</title><style>body{font-family:Arial,Helvetica,sans-serif;padding:28px;color:#243447}h1{color:#1f4e79}table{border-collapse:collapse;width:100%;margin-top:14px}td,th{border:1px solid #ddd;padding:8px;text-align:right}td:first-child,th:first-child{text-align:left}th{background:#f4f7f6}.box{background:#f8fafc;border:1px solid #ddd;padding:14px;border-radius:8px;margin:12px 0}</style></head><body><h1>2 MW Solar Tariff Impact Report</h1><div class="box"><p><b>Project:</b> 2 MW solar project at 19% CUF</p><p><b>Annual units:</b> ${format(s.annualUnitsLakh)} lakh units</p><p><b>Base tariff:</b> ₹${format(s.baseTariff)}/kWh</p><p><b>Revised tariff:</b> ₹${format(s.tariff)}/kWh</p><p><b>Base revenue:</b> ₹${format(s.baseRevenue)} lakh</p><p><b>Revised revenue:</b> ₹${format(s.revenue)} lakh</p><p><b>Revenue loss:</b> ₹${format(s.impact)} lakh (${format(s.dropPct)}%)</p><p><b>Average DSCR:</b> ${format(s.avgDscr)}x</p><p><b>Minimum DSCR:</b> ${format(s.minDscr)}x</p><p><b>Cash after debt service:</b> ₹${format(s.cashAfterDebt)} lakh</p></div><h2>Year-wise Debt Service Stress View</h2><table><thead><tr><th>Year</th><th>Revenue ₹ L</th><th>Debt Service ₹ L</th><th>DSCR</th><th>Credit Flag</th></tr></thead><tbody>${rows}</tbody></table><p><small>Debt-service figures are sensitivity assumptions. Replace with exact CMA repayment and interest schedule for final bank submission.</small></p></body></html>`;
+      downloadFile('2mw_tariff_impact_report.html', report, 'text/html;charset=utf-8;');
+    }
+
+    calculate();
+  </script>
+</body>
+</html>
